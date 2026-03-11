@@ -126,6 +126,9 @@ DJOSER = {
         'user': 'users.serializers.UserSerializer',
         'current_user': 'users.serializers.UserSerializer',
     },
+    'PERMISSIONS': {
+        'user_create': ['rest_framework.permissions.AllowAny'],
+    },
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
