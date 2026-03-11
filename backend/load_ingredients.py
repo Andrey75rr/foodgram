@@ -1,9 +1,10 @@
+import json
 import os
 import sys
-import json
-import django
-from recipes.models import Ingredient
 
+import django
+
+from recipes.models import Ingredient
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 django.setup()

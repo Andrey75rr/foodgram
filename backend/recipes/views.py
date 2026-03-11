@@ -5,26 +5,15 @@ from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly
-)
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+
 from .filters import RecipeFilter
-from .models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    ShoppingCart,
-    Tag
-)
-from .serializers import (
-    IngredientSerializer,
-    RecipeMinifiedSerializer,
-    RecipeSerializer,
-    TagSerializer,
-)
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
+from .serializers import (IngredientSerializer, RecipeMinifiedSerializer,
+                          RecipeSerializer, TagSerializer)
 
 
 def short_link_redirect(request, short_link):
