@@ -4,7 +4,6 @@ import uuid
 
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-
 from recipes.models import Recipe
 
 from .models import User

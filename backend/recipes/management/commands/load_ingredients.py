@@ -1,3 +1,4 @@
+"""Импорты."""
 import json
 import os
 
@@ -8,30 +9,26 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
+    """Загрузка ингредиентов из JSON файла."""
+
     help = 'Загрузка ингредиентов из JSON файла'
 
     def handle(self, *args, **options):
-        # Путь к файлу с ингредиентами
+        """Выполнить команду."""
         json_file_path = os.path.join(
             settings.BASE_DIR, '..', 'data', 'ingredients.json'
         )
-        
-        # Очищаем существующие ингредиенты (опционально)
-        # Ingredient.objects.all().delete()
-        
+
         try:
             with open(json_file_path, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-                
-                # Счетчик для статистики
                 created = 0
-                
+
                 for item in data:
                     name = item.get('name')
                     unit = item.get('measurement_unit')
-                    
+
                     if name and unit:
-                        # Создаем ингредиент
                         Ingredient.objects.get_or_create(
                             name=name,
                             measurement_unit=unit
@@ -42,13 +39,13 @@ class Command(BaseCommand):
                             self.stdout.write(
                                 f'Загружено {created} ингредиентов...'
                             )
-                
+
                 self.stdout.write(
                     self.style.SUCCESS(
                         f'Успешно загружено {created} ингредиентов'
                     )
                 )
-                
+
         except FileNotFoundError:
             self.stdout.write(
                 self.style.ERROR(f'Файл не найден: {json_file_path}')
