@@ -1,13 +1,13 @@
 """Views пользователей."""
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import (IsAuthenticated,
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
 from .models import Subscription, User
-from .serializers import (AvatarSerializer, UserSerializer,
-                          UserWithRecipesSerializer)
+from .serializers import (AvatarSerializer, UserCreateSerializer,
+                          UserSerializer, UserWithRecipesSerializer)
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -16,6 +16,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def create(self, request):
+        """Регистрация нового пользователя."""
+        serializer = UserCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
         detail=False,
