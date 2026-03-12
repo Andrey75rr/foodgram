@@ -9,15 +9,15 @@ from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
-from recipes.models import (Favorite, Ingredient, Recipe,
-                            RecipeIngredient, ShoppingCart, Tag)
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 from users.models import Subscription, User
 
 from .filters import RecipeFilter
 from .serializers import (AvatarSerializer, IngredientSerializer,
                           RecipeMinifiedSerializer, RecipeSerializer,
-                          TagSerializer, UserCreateSerializer,
-                          UserSerializer, UserWithRecipesSerializer)
+                          TagSerializer, UserCreateSerializer, UserSerializer,
+                          UserWithRecipesSerializer)
 
 
 def short_link_redirect(request, short_link):
