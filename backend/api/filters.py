@@ -1,7 +1,7 @@
 """Фильтры для рецептов."""
 import django_filters
 
-from .models import Recipe, Tag
+from recipes.models import Recipe, Tag
 
 
 class RecipeFilter(django_filters.FilterSet):
