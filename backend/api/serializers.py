@@ -8,6 +8,13 @@ from rest_framework import serializers
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import User
 
+from .constants import (
+    MAX_AMOUNT,
+    MIN_AMOUNT,
+    MIN_COOKING_TIME,
+    MAX_COOKING_TIME
+)
+
 
 class Base64ImageField(serializers.ImageField):
     """Поле для загрузки изображения в формате Base64."""
@@ -183,7 +190,8 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
         required=True
     )
     amount = serializers.IntegerField(
-        min_value=1,
+        min_value=MIN_AMOUNT,
+        max_value=MAX_AMOUNT,
         required=True
     )
 
@@ -236,6 +244,10 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         required=True
     )
     image = Base64ImageField(required=True)
+    cooking_time = serializers.IntegerField(
+        min_value=MIN_COOKING_TIME,
+        max_value=MAX_COOKING_TIME,
+    )
 
     class Meta:
         """Мета данные."""
@@ -248,7 +260,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'name': {'required': True},
             'text': {'required': True},
-            'cooking_time': {'required': True},
         }
 
     def validate(self, data):
@@ -267,14 +278,6 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         """Валидация описания."""
         if not value or not value.strip():
             raise serializers.ValidationError('Описание не может быть пустым.')
-        return value
-
-    def validate_cooking_time(self, value):
-        """Валидация времени приготовления."""
-        if value < 1:
-            raise serializers.ValidationError(
-                'Время приготовления должно быть больше 0.'
-            )
         return value
 
     def validate_ingredients(self, value):

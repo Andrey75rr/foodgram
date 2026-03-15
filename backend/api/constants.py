@@ -1,0 +1,6 @@
+"""Константы приложения api."""
+
+MIN_AMOUNT = 1
+MAX_AMOUNT = 32000
+MIN_COOKING_TIME = 1
+MAX_COOKING_TIME = 32000

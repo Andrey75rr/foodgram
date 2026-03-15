@@ -15,12 +15,9 @@ DATABASES = {
     }
 }
 
-# SECRET_KEY = os.getenv('SECRET_KEY')
-# # DEBUG = os.getenv('DEBUG', 'False') == 'True'
-# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
-SECRET_KEY = 'django-insecure-my0^w*oylb91x6#cha)9mwi3dm@%hy5dqi%h-e)f12(k4$qbf='
-DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+SECRET_KEY = os.getenv('SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -66,14 +63,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
-
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
 
 
 AUTH_PASSWORD_VALIDATORS = [
