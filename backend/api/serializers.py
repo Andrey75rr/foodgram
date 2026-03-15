@@ -8,12 +8,8 @@ from rest_framework import serializers
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import User
 
-from .constants import (
-    MAX_AMOUNT,
-    MIN_AMOUNT,
-    MIN_COOKING_TIME,
-    MAX_COOKING_TIME
-)
+from .constants import (MAX_AMOUNT, MAX_COOKING_TIME, MIN_AMOUNT,
+                        MIN_COOKING_TIME)
 
 
 class Base64ImageField(serializers.ImageField):
