@@ -1,22 +1,25 @@
 """Импорты."""
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, status, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingCart, Tag)
-from users.models import Subscription, User
+from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from users.models import User
 
 from .filters import RecipeFilter
 from .serializers import (AvatarSerializer, IngredientSerializer,
-                          RecipeMinifiedSerializer, RecipeSerializer,
-                          TagSerializer, UserCreateSerializer, UserSerializer,
+                          RecipeMinifiedSerializer, RecipeReadSerializer,
+                          RecipeWriteSerializer, TagSerializer,
+                          UserCreateSerializer, UserSerializer,
                           UserWithRecipesSerializer)
 
 
@@ -26,19 +29,24 @@ def short_link_redirect(request, short_link):
     return redirect(f'/recipes/{recipe.id}/')
 
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     """Пользователи: список и детальная информация."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def create(self, request):
-        """Регистрация нового пользователя."""
-        serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_permissions(self):
+        """Разрешить регистрацию без аутентификации."""
+        if self.action == 'create':
+            return []
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        """Использовать разные сериализаторы для разных действий."""
+        if self.action == 'create':
+            return UserCreateSerializer
+        return UserSerializer
 
     @action(
         detail=False,
@@ -59,18 +67,39 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def avatar(self, request):
         """Загрузить или удалить аватар текущего пользователя."""
         user = request.user
-
         if request.method == 'PUT':
+            if not request.data:
+                return Response(
+                    {'avatar': ['Это поле обязательно.']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if 'avatar' not in request.data:
+                return Response(
+                    {'avatar': ['Это поле обязательно.']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if not request.data.get('avatar'):
+                return Response(
+                    {'avatar': ['Это поле не может быть пустым.']},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             serializer = AvatarSerializer(
-                user, data=request.data, partial=True
+                user, data=request.data, partial=False
             )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(
-                {'avatar': request.build_absolute_uri(user.avatar.url)},
-                status=status.HTTP_200_OK
-            )
-
+            try:
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(
+                    {'avatar': request.build_absolute_uri(user.avatar.url)},
+                    status=status.HTTP_200_OK
+                )
+            except serializers.ValidationError as e:
+                return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response(
+                    {'detail': str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         if not user.avatar:
             return Response(
                 {'detail': 'Аватар отсутствует.'},
@@ -114,9 +143,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         if request.method == 'POST':
-            _, created = Subscription.objects.get_or_create(
-                user=user, author=author
-            )
+            _, created = user.following.get_or_create(author=author)
             if not created:
                 return Response(
                     {'error': 'Вы уже подписаны на этого пользователя.'},
@@ -127,14 +154,45 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        deleted, _ = Subscription.objects.filter(
-            user=user, author=author
-        ).delete()
+        deleted, _ = user.following.filter(author=author).delete()
         if not deleted:
             return Response(
                 {'error': 'Вы не подписаны на этого пользователя.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='set_password',
+        permission_classes=[IsAuthenticated]
+    )
+    def set_password(self, request):
+        """Смена пароля пользователя."""
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        if not current_password or not new_password:
+            return Response(
+                {'current_password': ['Это поле обязательно.'],
+                 'new_password': ['Это поле обязательно.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not user.check_password(current_password):
+            return Response(
+                {'current_password': ['Неверный пароль.']},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            validate_password(new_password, user)
+        except ValidationError as e:
+            return Response(
+                {'new_password': list(e.messages)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.set_password(new_password)
+        user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -160,24 +218,40 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Рецепты — полный CRUD + избранное + корзина + скачать список покупок."""
 
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
+
+    def get_serializer_class(self):
+        """Выбрать сериализатор в зависимости от метода."""
+        if self.request.method in ('POST', 'PATCH', 'PUT'):
+            return RecipeWriteSerializer
+        return RecipeReadSerializer
 
     def perform_create(self, serializer):
         """Автоматически назначить автора при создании рецепта."""
         serializer.save(author=self.request.user)
 
-    def _add_or_remove(self, model, request, pk):
+    def perform_update(self, serializer):
+        """Проверить, что пользователь - автор рецепта."""
+        if self.get_object().author != self.request.user:
+            raise PermissionDenied('Вы не являетесь автором этого рецепта.')
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """Проверить, что пользователь - автор рецепта."""
+        if instance.author != self.request.user:
+            raise PermissionDenied('Вы не являетесь автором этого рецепта.')
+        instance.delete()
+
+    def _add_or_remove(self, related_manager_name, request, pk):
         """Добавить/удалить из избранного или корзины."""
         recipe = self.get_object()
         user = request.user
+        manager = getattr(user, related_manager_name)
 
         if request.method == 'POST':
-            obj, created = model.objects.get_or_create(
-                user=user, recipe=recipe
-            )
+            _, created = manager.get_or_create(recipe=recipe)
             if not created:
                 return Response(
                     {'detail': 'Уже добавлено.'},
@@ -189,8 +263,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 ).data,
                 status=status.HTTP_201_CREATED
             )
-
-        deleted, _ = model.objects.filter(user=user, recipe=recipe).delete()
+        deleted, _ = manager.filter(recipe=recipe).delete()
         if not deleted:
             return Response(
                 {'detail': 'Не найдено.'},
@@ -205,7 +278,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавить/убрать рецепт из избранного."""
-        return self._add_or_remove(Favorite, request, pk)
+        return self._add_or_remove('favorites', request, pk)
 
     @action(
         detail=True,
@@ -214,7 +287,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         """Добавить/убрать рецепт из корзины покупок."""
-        return self._add_or_remove(ShoppingCart, request, pk)
+        return self._add_or_remove('shopping_cart', request, pk)
 
     @action(
         detail=True,
@@ -256,7 +329,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"({item['ingredient__measurement_unit']}) — "
                 f"{item['total_amount']}\n"
             )
-
         response = HttpResponse(
             ''.join(lines),
             content_type='text/plain; charset=utf-8'

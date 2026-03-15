@@ -15,9 +15,12 @@ DATABASES = {
     }
 }
 
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+# SECRET_KEY = os.getenv('SECRET_KEY')
+# # DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+SECRET_KEY = 'django-insecure-my0^w*oylb91x6#cha)9mwi3dm@%hy5dqi%h-e)f12(k4$qbf='
+DEBUG = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -115,7 +118,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 6,
 }
 
@@ -130,6 +133,8 @@ DJOSER = {
     'PERMISSIONS': {
         'user_create': ['rest_framework.permissions.AllowAny'],
     },
+    'SET_PASSWORD_RETYPE': False,
+    'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
