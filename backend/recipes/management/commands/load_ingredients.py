@@ -16,7 +16,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         """Выполнить команду."""
         json_file_path = os.path.join(
-            settings.BASE_DIR, '..', 'data', 'ingredients.json'
+            settings.BASE_DIR, 'data', 'ingredients.json'
         )
 
         try:
