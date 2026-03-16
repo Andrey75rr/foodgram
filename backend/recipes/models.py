@@ -75,7 +75,7 @@ class Recipe(models.Model):
     )
     text = models.TextField(
         'Описание',
-        max_length=200,
+        max_length=500,
         blank=True,
         default=''
     )
