@@ -158,3 +158,4 @@ http://localhost/api/docs/
 
 **Андрей Тихончук**
 - GitHub: [Andrey75rr](https://github.com/Andrey75rr)
+- сайт доступен по адресу(http://158.160.15.55/)
